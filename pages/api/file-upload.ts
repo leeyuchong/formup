@@ -1,12 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import * as dfd from "danfojs-node";
-import nc from 'next-connect';
+import {createRouter} from 'next-connect';
 import multer from 'multer';
 import axios from 'axios';
+import fs from "fs";
+import path from 'path';
 
 interface ProcessedForm {
-    columnNames: string[],
-    options: string[],
+    colNames: string[],
+    // options: string[],
+    // nameColumn: string,
+    // orderColumn: string,
+    // choiceColumns: string[],
 }
 
 const shuffleArray = array => {
@@ -18,10 +23,13 @@ const shuffleArray = array => {
     }
   }
 
-const processCsv = (csv: File) : ProcessedForm => {
-    const retVal = {} as ProcessedForm;
-    // const df = dfd.readCSV(csv);
-    return retVal;
+const processCsv = async (csvPath: string) : Promise<string[]> => {
+    const processedForm = {} as ProcessedForm;
+    const df = await dfd.readCSV(csvPath);
+    // processedForm.colNames = df.columns
+    // processedForm.options = df.unique()
+    console.log(df.columns)
+    return df.columns;
 }
 
 const processRequest = async (req: NextApiRequest) => {
@@ -49,46 +57,49 @@ const processRequest = async (req: NextApiRequest) => {
 
 }
 
+// reference: https://betterprogramming.pub/upload-files-to-next-js-with-api-routes-839ce9f28430
 
+export interface MulterFile {
+  key: string
+  path: string
+  mimetype: string
+  originalname: string
+  size: number
+  filename: string
+}
 
 const upload = multer({
     storage: multer.diskStorage({
         destination: "./public/uploads",
-        filename: (req, file, cb) => cb(null, file.originalname),
+        filename: (req, file, cb) => {
+          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`
+          cb(null, `${file.originalname.replace(".csv", "")}-${uniqueSuffix}.csv`)
+        },
     }),
 })
+const uploadMiddleware = upload.single("file")
 
-const apiRoute = nc<NextApiRequest, NextApiResponse>({
-  // Handle any other HTTP method
-  onNoMatch: (req, res) => {
-    res.status(405).json({ error: `Method '${req.method}' Not Allowed` });
+const apiRoute = createRouter<NextApiRequest, NextApiResponse>();
+
+apiRoute.use(uploadMiddleware).post(async (req: NextApiRequest & { file: MulterFile }, res) => {
+  // console.log("B", req.file.filename)
+  const colNames = await processCsv(req.file.path)
+  return res.status(200).json( {colNames: JSON.stringify(colNames), fileName: req.file.filename} );
+});
+
+export default apiRoute.handler({
+  onError: (err, req, res) => {
+    console.error(err);
+    res.status(500).end("Something broke!")
   },
+  onNoMatch: (req, res) => {
+    res.status(404).end("Page not found")
+  }
 });
-
-const uploadMiddleware = upload.array('file')
-
-apiRoute.use(uploadMiddleware)
-
-
-// Process a POST request
-apiRoute.post((req, res) => {
-  res.status(200).json({ data: 'success' });
-});
-
-export default apiRoute;
 
 export const config = {
     api: {
       bodyParser: false, // Disallow body parsing, consume as stream
     },
   };
-  
-// const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-//     // Calling our pure function using the `res` object, it will add the `set-cookie` header
-//     // Return the `set-cookie` header so we can display it in the browser and show that it works!
-//     // await processRequest(req);
-//     res.status(200).json(await processRequest(req))
-//   }
-  
-//   export default handler
   

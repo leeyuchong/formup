@@ -70,6 +70,7 @@ export const dropzoneChildren = (
 const clientUploadFile = async (file: File, onUploadProgress) => {
   let formData = new FormData();
   formData.append("file", file);
+  // formData.append("fileName", "1.csv");
   return axios.post("/api/file-upload", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
@@ -78,6 +79,9 @@ const clientUploadFile = async (file: File, onUploadProgress) => {
   });
 };
 
+interface test {
+  colNames: string[]
+}
 
 // reference: https://www.bezkoder.com/react-drag-drop-file-upload/
 
@@ -102,7 +106,10 @@ function FairAccIndex(props) {
         });
       });
       console.log(response);
-      router.push("/fairacc/questions")
+      router.push({
+        pathname: "/fairacc/questions",
+        query: {colNames: response.data.colNames, fileName: response.data.fileName}
+      }, "/fairacc/questions")
     } catch (error) {
       console.log(error);
     }

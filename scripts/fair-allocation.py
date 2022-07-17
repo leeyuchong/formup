@@ -48,10 +48,12 @@ if __name__== "__main__":
     # add name to the event too? 
     for _ in range(len(choices)):
         for row in values:
-            for c in row[1]:
-                if c and availabilities[c] > 0:
-                    allocations[row[0]].append(c)
-                    availabilities[c] -= 1
+            for idx in range(len(row[1])):
+                option = row[1][idx]
+                if option and availabilities[option] > 0:
+                    allocations[row[0]].append(option)
+                    availabilities[option] -= 1
+                    row[1][idx] = None
                     break
         values.reverse()
     print(allocations)
