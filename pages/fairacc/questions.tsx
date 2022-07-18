@@ -9,7 +9,6 @@ import {
   Text,
 } from "@mantine/core";
 import { FormList, formList, useForm } from "@mantine/form";
-import axios from "axios";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -19,14 +18,16 @@ function FairAccQuestions(props) {
   const router = useRouter();
   // const [s, setS] = useState({});
   const [colNames, setColNames] = useState([]);
-  const [fileName, setFileName] = useState("");
+  // const [fileName, setFileName] = useState("");
+  const [options, setOptions] = useState({})
   const [preferenceColIdx, setPrefColIdx] = useState<string[]>([]);
   const form = useForm({
     initialValues: {
+      fileName: "",
       nameCol: "", // name of the column with name of people
       respOrderCol: "", // name of column with order information
       prefOrderCol: formList<string>([]), // object of column name and order
-      // vacancies: {} // object of offering and vacancies
+      vacancies: formList([]) // array of objects of offering and vacancies
     },
   });
   const [step, setStep] = useState(1);
@@ -39,7 +40,7 @@ function FairAccQuestions(props) {
   useEffect(() => {
     if (router.isReady) {
       setColNames(JSON.parse(router.query.colNames as string));
-      setFileName(router.query.fileName as string);
+      form.setFieldValue("fileName", router.query.fileName as string);
     }
   }, [router.isReady]);
 
@@ -85,10 +86,12 @@ function FairAccQuestions(props) {
             }}
           >
             {colNames.map((item, idx) => (
-              <Radio key={`1${idx}`} value={`${idx}`} label={item} />
+              <Radio key={`1${idx}`} value={`${idx}`} label={item}/>
             ))}
           </RadioGroup>
-          <Button onClick={nextStep}>Next step</Button>
+          <Button onClick={(e) => {
+            setColNames((prev) => prev.filter((val) => val !== form.values.nameCol))
+            nextStep()}}>Next step</Button>
         </Box>
       );
     case 2:
@@ -108,7 +111,11 @@ function FairAccQuestions(props) {
               label="No picking order, shuffle the respondents"
             />
           </RadioGroup>
-          <Button onClick={nextStep}>Next step</Button>
+          <Button onClick={(e) => {
+            setColNames((prev) => prev.filter((val) => val !== form.values.respOrderCol))
+            nextStep()}}>
+              Next step
+          </Button>
         </Box>
       );
     case 3:
